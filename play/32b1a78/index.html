@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121920">
+  <title>ГГТ Match 3</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #121920; color: #fff; font: 18px Arial, sans-serif; }
+    #viewport { position: fixed; inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); touch-action: none; }
+    canvas { display: block; outline: none; touch-action: none; }
+    #status { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; background: #121920; }
+    #status img { width: 160px; height: 160px; object-fit: contain; }
+    h1 { margin: 0; font-size: 30px; line-height: 1.2; }
+    progress { width: min(280px, 85vw); accent-color: #0874ce; }
+    #message { max-width: 400px; text-align: center; white-space: pre-line; line-height: 1.4; }
+    button { min-height: 48px; padding: 12px 24px; background: #0874ce; color: white; border: 1px solid #77b8ec; border-radius: 6px; font: inherit; cursor: pointer; }
+    [hidden] { display: none !important; }
+  </style>
+  <link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+</head>
+<body>
+  <div id="viewport"><canvas id="canvas" tabindex="0"></canvas></div>
+  <div id="status">
+    <img src="index.png" alt="ГГТ">
+    <h1>ГГТ Match 3</h1>
+    <progress id="progress"></progress>
+    <div id="message">Загрузка смены…</div>
+    <button id="restart" hidden>Открыть игру</button>
+  </div>
+  <noscript>Для игры нужен JavaScript.</noscript>
+  <script src="index.js"></script>
+  <script>
+    const config = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":15371448,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+    const engine = new Engine(config);
+    const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const message = document.getElementById('message');
+    const restart = document.getElementById('restart');
+    function resize() {
+      const area = viewport.getBoundingClientRect();
+      // Bound raster resolution; retain the same game-space scaling and all PNGs.
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(area.width * ratio));
+      canvas.height = Math.max(1, Math.floor(area.height * ratio));
+      canvas.style.width = `${area.width}px`;
+      canvas.style.height = `${area.height}px`;
+    }
+    new ResizeObserver(resize).observe(viewport);
+    window.addEventListener('resize', resize);
+    resize();
+    restart.addEventListener('click', () => location.reload());
+    const missing = Engine.getMissingFeatures({ threads: false });
+    if (missing.length) {
+      progress.hidden = true;
+      console.warn('Missing browser features:', missing);
+      message.textContent = 'Игра недоступна в этом браузере. Попробуйте другой.';
+    } else {
+      engine.startGame({
+        canvas,
+        canvasResizePolicy: 0,
+        onProgress: (current, total) => { if (total > 0) { progress.max = total; progress.value = current; } },
+        onExit: code => {
+          status.hidden = false;
+          progress.hidden = true;
+          message.textContent = code === 0 ? 'Смена закрыта.' : 'Игра остановлена из-за ошибки.';
+          restart.hidden = false;
+        },
+      }).then(() => { status.hidden = true; window.__gameStartedMs = performance.now(); }).catch(error => {
+        console.error(error);
+        progress.hidden = true;
+        message.textContent = 'Не удалось открыть игру. Обновите страницу.';
+        restart.hidden = false;
+      });
+    }
+  </script>
+</body>
+</html>
+
